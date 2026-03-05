@@ -1,0 +1,23 @@
+# Snippet à ajouter dans /home/lambert/apps/docker-compose.yml
+# (ou à utiliser seul pour le développement)
+#
+# Prérequis sur le VPS :
+#   docker exec postgres psql -U postgres -c "CREATE DATABASE autotiktok;"
+
+services:
+  autotiktok:
+    build: .
+    container_name: autotiktok
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./downloads:/app/downloads
+      - ./generated_videos:/app/generated_videos
+    networks:
+      - internal
+    # Le container reste en vie — les commandes sont lancées via n8n ou docker exec
+    command: ["node", "-e", "setInterval(() => {}, 1 << 30)"]
+
+networks:
+  internal:
+    external: true
