@@ -1,23 +1,36 @@
-# Snippet à ajouter dans /home/lambert/apps/docker-compose.yml
-# (ou à utiliser seul pour le développement)
-#
-# Prérequis sur le VPS :
-#   docker exec postgres psql -U postgres -c "CREATE DATABASE autotiktok;"
+# Développement local
+# Usage : docker compose up -d
+#         docker compose run --rm autotiktok node src/index.js init-db
+#         docker compose run --rm autotiktok node src/index.js scrape --hashtag funny
 
 services:
+  postgres:
+    image: postgres:15
+    container_name: autotiktok_postgres_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: autotiktok
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"   # 5433 pour éviter un conflit si postgres tourne déjà en local
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+
   autotiktok:
     build: .
-    container_name: autotiktok
-    restart: unless-stopped
+    container_name: autotiktok_dev
     env_file: .env
+    environment:
+      DB_HOST: postgres   # override : pointe vers le postgres local du compose
+      DB_PORT: "5432"
     volumes:
       - ./downloads:/app/downloads
       - ./generated_videos:/app/generated_videos
-    networks:
-      - internal
-    # Le container reste en vie — les commandes sont lancées via n8n ou docker exec
+      - ./src:/app/src   # hot-reload du code source sans rebuild
+    depends_on:
+      - postgres
     command: ["node", "-e", "setInterval(() => {}, 1 << 30)"]
 
-networks:
-  internal:
-    external: true
+volumes:
+  postgres_dev_data:
